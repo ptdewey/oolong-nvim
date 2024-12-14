@@ -49,28 +49,17 @@ local function ensure_job()
     return chan
 end
 
---- create plugin user commands to build binary and show report
+--- Create plugin user commands to build binary and show report
 local function setup_oolong_commands()
-    vim.api.nvim_create_user_command("Oolong", function(args)
+    vim.api.nvim_create_user_command("OolongSearch", function(args)
         chan = ensure_job()
         if not chan or chan == 0 then
             print("Error: Invalid channel")
             return
         end
 
-        local time_range = args.args or "all"
-
-        local command_args = {
-            log_file = options.log_file,
-            timer_len = options.timer_len,
-            top_n = options.top_n,
-            time_range = time_range,
-            report_excludes = options.report_excludes,
-            report_section_excludes = options.report_section_excludes,
-        }
-
         local success, result =
-            pcall(vim.fn.rpcrequest, chan, "oolong-nvim", command_args)
+            pcall(vim.fn.rpcrequest, chan, "oolong-search", args.args)
         if not success then
             print("RPC request failed: " .. result)
         end
@@ -92,19 +81,13 @@ local function setup_oolong_commands()
     end, { nargs = 0 })
 end
 
---- report generation setup (requires go)
+--- Report generation setup (requires go)
 ---@param opts table
 function M.setup(opts)
-    options.log_file = opts.log_file
-    options.timer_len = opts.timer_len
-    options.top_n = opts.top_n or 5
-    options.report_excludes = opts.report_excludes
-    options.report_section_excludes = opts.report_section_excludes
-
-    -- get plugin install path
+    -- Get plugin install path
     plugin_path = debug.getinfo(1).source:sub(2):match("(.*/).*/.*/")
 
-    -- check os to switch separators and binary extension if necessary
+    -- Check os to switch separators and binary extension if necessary
     local uname = vim.loop.os_uname().sysname
     local path_separator = (uname == "Windows_NT") and "\\" or "/"
     bin_path = plugin_path
@@ -115,7 +98,7 @@ function M.setup(opts)
 
     setup_oolong_commands()
 
-    -- check if binary exists
+    -- Check if binary exists
     local uv = vim.loop
     local handle = uv.fs_open(bin_path, "r", 438)
     if handle then
@@ -123,13 +106,11 @@ function M.setup(opts)
         return
     end
 
-    -- TODO: check if go is installed and is correct version
-
-    -- compile binary if it doesn't exist
+    -- Compile binary if it doesn't exist
     print(
         "oolong-nvim binary not found at "
             .. bin_path
-            .. ", attempting to compile with Go..."
+            .. ", attempting to compile..."
     )
 
     local result =

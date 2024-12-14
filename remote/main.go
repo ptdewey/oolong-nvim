@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"log"
+	"oolong-nvim/internal"
 	"os"
 
 	"github.com/neovim/go-client/nvim"
@@ -14,9 +15,10 @@ func RpcEventHandler(v *nvim.Nvim, args map[string]interface{}) error {
 }
 
 func main() {
-	log.SetFlags(0)
+	// l, _ := os.Create("oolong-nvim.log")
+	// log.SetOutput(l)
 
-	// Redirect stdout to stderr
+	// Redirect standard output to standard error
 	stdout := os.Stdout
 	os.Stdout = os.Stderr
 
@@ -26,22 +28,35 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Register the "oolong-nvim" RPC handler, which receives Lua tables
-	v.RegisterHandler("oolong-nvim", func(v *nvim.Nvim, args ...interface{}) error {
+	// Register the "oolong-search" RPC handler
+	v.RegisterHandler("oolong-search", func(v *nvim.Nvim, args ...interface{}) error {
 		// Expecting the first argument to be a map (Lua table)
 		if len(args) < 1 {
-			return errors.New("not enough arguments")
+			err := errors.New("not enough arguments")
+			log.Println(err)
+			return err
 		}
 
 		// Parse the first argument as a map
-		argMap, ok := args[0].(map[string]interface{})
+		// CHANGE: make current arg part of table
+		parsedArgs, ok := args[0].(string)
 		if !ok {
-			return errors.New("expected a map as the first argument")
+			err := errors.New("expected a map as the first argument")
+			log.Println(err)
+			return err
+		}
+
+		if err := internal.SearchHandler(v, parsedArgs); err != nil {
+			log.Println(err)
+			return err
 		}
 
 		// Call the actual handler with the parsed map
-		return RpcEventHandler(v, argMap)
+		// return RpcEventHandler(v, argMap)
+		return nil
 	})
+
+	// Register commands
 
 	// Run the RPC message loop
 	if err := v.Serve(); err != nil {

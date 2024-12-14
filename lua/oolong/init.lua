@@ -1,6 +1,6 @@
 local M = {}
 
--- local remote = require("oolong.remote")
+local remote = require("oolong.remote")
 
 local default_opts = {
     open_command = nil,
@@ -31,7 +31,7 @@ function M.setup(opts)
         )
     end, {})
 
-    -- remote.setup(opts)
+    remote.setup(opts)
 end
 
 return M
